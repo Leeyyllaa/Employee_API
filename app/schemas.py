@@ -5,23 +5,35 @@
 
 from typing import Optional, Literal, Annotated
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from datetime import date, datetime  # <-- ich nutze "date" für Geburtstage
+from datetime import date, datetime
 
-#Pattern für die Validierung der Eingaben
+#Pattern: 
 NAME_PATTERN = r"^[A-Za-zÄÖÜäöüß\- ]{1,100}$"
 PHONE_PATTERN = r"^\+?[0-9]{6,20}$"
 
 Gender = Literal["male", "female", "diverse"]
 
+
 # ---------- Base: Grundstruktur für Mitarbeiter ----------
 class EmployeeBase(BaseModel):
-    first_name: str
-    last_name: str
-    age: Optional[int] = None
-    gender: Optional[str] = None
+    first_name: Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
+    last_name:  Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
+    age: Optional[int] = Field(default=None, ge=0, le=120)
+    gender: Optional[Gender] = None
     email: Optional[EmailStr] = None
-    birth_date: Optional[date] = None   # nur Datum, kein Zeitstempel
-    phone_number: Optional[str] = None
+    birth_date: Optional[date] = None
+    phone_number: Optional[Annotated[str, Field(pattern=PHONE_PATTERN, max_length=20)]] = None
+
+    @field_validator("birth_date")
+    @classmethod
+    def birth_must_be_past(cls, v: Optional[date]):
+        if v is None:
+            return v
+        if v < date(1900, 1, 1):
+            raise ValueError("birth_date must be after 1900-01-01")
+        if v >= date.today():
+            raise ValueError("birth_date must be in the past")
+        return v
 
 # ---------- Create: Schema für Erstellung eines Mitarbeiters ----------
 class EmployeeCreate(EmployeeBase):
@@ -29,15 +41,27 @@ class EmployeeCreate(EmployeeBase):
     last_name: str
     email: EmailStr
 
+
 # ---------- Update: Schema für Aktualisierung eines Mitarbeiters ----------
 class EmployeeUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    age: Optional[int] = None
-    gender: Optional[str] = None
+    first_name: Optional[Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]] = None
+    last_name:  Optional[Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]] = None
+    age: Optional[int] = Field(default=None, ge=16, le=120)
+    gender: Optional[Gender] = None
     email: Optional[EmailStr] = None
-    birth_date: Optional[date] = None   # hier nur Datum
-    phone_number: Optional[str] = None
+    birth_date: Optional[date] = None
+    phone_number: Optional[Annotated[str, Field(pattern=PHONE_PATTERN, max_length=20)]] = None
+
+    @field_validator("birth_date")
+    @classmethod
+    def birth_must_be_past(cls, v: Optional[date]):
+        if v is None:
+            return v
+        if v < date(1900, 1, 1):
+            raise ValueError("birth_date must be after 1900-01-01")
+        if v >= date.today():
+            raise ValueError("birth_date must be in the past")
+        return v
 
 # ---------- Output: Schema für Rückgabe eines Mitarbeiters ----------
 class EmployeeOut(EmployeeBase):
@@ -46,5 +70,5 @@ class EmployeeOut(EmployeeBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True  #korrekt für Pydantic v2
+        from_attributes = True
 
