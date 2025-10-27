@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pg-emp
+    environment:
+      POSTGRES_DB: employee_db
+      POSTGRES_USER: empuser
+      POSTGRES_PASSWORD: emppass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"   
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U empuser -d employee_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: employee-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+     
+      DATABASE_URL: postgresql+psycopg2://empuser:emppass@db:5432/employee_db
+    ports:
+      - "8000:8000"
+    
+
+volumes:
+  pgdata:
