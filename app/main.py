@@ -10,7 +10,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Employee API")
 
-# --- هندلر سراسری برای IntegrityError -> 409 به آلمانی ---
+
 @app.exception_handler(IntegrityError)
 async def integrity_error_handler(request: Request, exc: IntegrityError):
     msg = str(getattr(exc, "orig", exc))

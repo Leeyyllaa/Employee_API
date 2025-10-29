@@ -4,7 +4,7 @@
 # Sie prüft nur, ob die gesendeten oder empfangenen Daten richtig sind (z. B. Datentypen und Pflichtfelder).
 
 from typing import Optional, Literal, Annotated
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from datetime import date, datetime
 
 #Pattern: 
@@ -15,20 +15,20 @@ Gender = Literal["male", "female", "diverse"]
 
 
 # ---------- Base: Grundstruktur für Mitarbeiter ----------
-class EmployeeBase(BaseModel):
-    first_name: Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
-    last_name:  Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
-    age: Optional[int] = Field(default=None, ge=0, le=120)
-    gender: Optional[Gender] = None
-    email: Optional[EmailStr] = None
-    birth_date: Optional[date] = None
-    phone_number: Optional[Annotated[str, Field(pattern=PHONE_PATTERN, max_length=20)]] = None
+class EmployeePut(BaseModel):
+    model_config = ConfigDict(extra="forbid") 
+
+    first_name:   Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
+    last_name:    Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
+    age:          Annotated[int, Field(ge=16, le=120)]
+    gender:       Gender
+    email:        EmailStr
+    birth_date:   date
+    phone_number: Annotated[str, Field(pattern=PHONE_PATTERN, max_length=20)]
 
     @field_validator("birth_date")
     @classmethod
-    def birth_must_be_past(cls, v: Optional[date]):
-        if v is None:
-            return v
+    def birth_must_be_past(cls, v: date):
         if v < date(1900, 1, 1):
             raise ValueError("birth_date must be after 1900-01-01")
         if v >= date.today():
@@ -36,20 +36,20 @@ class EmployeeBase(BaseModel):
         return v
 
 # ---------- Create: Schema für Erstellung eines Mitarbeiters ----------
-class EmployeeCreate(EmployeeBase):
-    first_name: str
-    last_name: str
-    email: EmailStr
+class EmployeeCreate(BaseModel):
+    first_name:   Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
+    last_name:    Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]
+    email:        EmailStr
 
 
 # ---------- Update: Schema für Aktualisierung eines Mitarbeiters ----------
 class EmployeeUpdate(BaseModel):
-    first_name: Optional[Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]] = None
-    last_name:  Optional[Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]] = None
-    age: Optional[int] = Field(default=None, ge=16, le=120)
-    gender: Optional[Gender] = None
-    email: Optional[EmailStr] = None
-    birth_date: Optional[date] = None
+    first_name:   Optional[Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]] = None
+    last_name:    Optional[Annotated[str, Field(pattern=NAME_PATTERN, max_length=100)]] = None
+    age:          Optional[int] = Field(default=None, ge=16, le=120)
+    gender:       Optional[Gender] = None
+    email:        Optional[EmailStr] = None
+    birth_date:   Optional[date] = None
     phone_number: Optional[Annotated[str, Field(pattern=PHONE_PATTERN, max_length=20)]] = None
 
     @field_validator("birth_date")
@@ -64,11 +64,16 @@ class EmployeeUpdate(BaseModel):
         return v
 
 # ---------- Output: Schema für Rückgabe eines Mitarbeiters ----------
-class EmployeeOut(EmployeeBase):
-    id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+class EmployeeOut(BaseModel):
+    id:           int
+    first_name:   str
+    last_name:    str
+    age:          Optional[int] = None
+    gender:       Optional[Gender] = None
+    email:        EmailStr
+    birth_date:   Optional[date] = None
+    phone_number: Optional[str] = None
+    created_at:   datetime
+    updated_at:   Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
